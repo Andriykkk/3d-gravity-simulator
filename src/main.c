@@ -5,16 +5,19 @@
 #include <math.h>
 #include "libraries/drawing.h"
 
-#define N 30
+#define N 10
 #define G 6.67430e-11
-#define DT 1
+#define DT 4
 
 typedef struct
 {
     double x, y, z;    // Position
     double vx, vy, vz; // Velocity
-    double mass;       // Mass
+    double mass;
+    double radius; // Mass
 } Particle;
+
+double posX = 0, posY = 0, posZ = -3;
 
 Particle particles[N];
 
@@ -28,13 +31,14 @@ void init_particles()
 {
     for (int i = 0; i < N; i++)
     {
-        particles[i].x = ((float)rand() / RAND_MAX) * 2.0 - 1.0;
-        particles[i].y = ((float)rand() / RAND_MAX) * 2.0 - 1.0;
-        particles[i].z = ((float)rand() / RAND_MAX) * 2.0 - 1.0;
+        particles[i].x = (((float)rand() / RAND_MAX) * 2.0 - 1.0) * 3;
+        particles[i].y = (((float)rand() / RAND_MAX) * 2.0 - 1.0) * 3;
+        particles[i].z = (((float)rand() / RAND_MAX) * 2.0 - 1.0) * 3 - 3;
         particles[i].vx = 0;
         particles[i].vy = 0;
         particles[i].vz = 0;
         particles[i].mass = 1;
+        particles[i].radius = 0.2;
     }
 }
 
@@ -76,7 +80,68 @@ void print_particles()
 {
     for (int i = 0; i < N; i++)
     {
-        render_circle( particles[i].x, particles[i].y, particles[i].z);
+        render_circle(particles[i].x, particles[i].y, particles[i].z, particles[i].radius, 36);
+    }
+}
+
+char moveForward = 0, moveBackward = 0, moveLeft = 0, moveRight = 0;
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if (action == GLFW_PRESS || action == GLFW_REPEAT)
+    {
+        switch (key)
+        {
+        case GLFW_KEY_W:
+            moveForward = 1;
+            break;
+        case GLFW_KEY_S:
+            moveBackward = 1;
+            break;
+        case GLFW_KEY_A:
+            moveLeft = 1;
+            break;
+        case GLFW_KEY_D:
+            moveRight = 1;
+            break;
+        }
+    }
+    else if (action == GLFW_RELEASE)
+    {
+        switch (key)
+        {
+        case GLFW_KEY_W:
+            moveForward = 0;
+            break;
+        case GLFW_KEY_S:
+            moveBackward = 0;
+            break;
+        case GLFW_KEY_A:
+            moveLeft = 0;
+            break;
+        case GLFW_KEY_D:
+            moveRight = 0;
+            break;
+        }
+    }
+}
+
+void process_input()
+{
+    if (moveForward)
+    {
+        posZ += 0.01;
+    }
+    if (moveBackward)
+    {
+        posZ -= 0.01;
+    }
+    if (moveLeft)
+    {
+        posX += 0.01;
+    }
+    if (moveRight)
+    {
+        posX -= 0.01;
     }
 }
 
@@ -97,6 +162,8 @@ int main(void)
 
     // Create a windowed mode window and its OpenGL context
     GLFWwindow *window = glfwCreateWindow(640, 640, "Particle Life", NULL, NULL);
+    // GLFWwindow *window2 = glfwCreateWindow(500, 500, "Additional Window", NULL, NULL);
+
     if (!window)
     {
         glfwTerminate();
@@ -104,18 +171,39 @@ int main(void)
         return -1;
     }
 
-    // Make the window's context current
     glfwMakeContextCurrent(window);
+
+    glfwSetKeyCallback(window, key_callback);
+
+    glEnable(GL_DEPTH_TEST);
+
+    // Set the projection matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(-1.0, 1.0, -1.0, 1.0, 1.0, 100.0);
+
+    // Set the modelview matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window))
     {
-        // Render here
-        glClear(GL_COLOR_BUFFER_BIT);
+        // Make the window's context current
+        glfwMakeContextCurrent(window);
 
+        // Render here
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        process_input();
+
+        glPushMatrix();
+        // Move the camera back so we can see the objects
+        glTranslatef(posX, posY, posZ);
         compute_forces();
         update_positions();
         print_particles();
+        glPopMatrix();
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
