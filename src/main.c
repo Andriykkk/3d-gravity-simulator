@@ -18,6 +18,9 @@ typedef struct
 } Particle;
 
 double posX = 0, posY = 0, posZ = -3;
+double angleX = 0, angleY = 0;
+char moveForward = 0, moveBackward = 0, moveLeft = 0, moveRight = 0, moveUp = 0, moveDown = 0,
+     turnLeft = 0, turnRight = 0, turnUp = 0, turnDown = 0;
 
 Particle particles[N];
 
@@ -31,9 +34,9 @@ void init_particles()
 {
     for (int i = 0; i < N; i++)
     {
-        particles[i].x = (((float)rand() / RAND_MAX) * 2.0 - 1.0) * 3;
-        particles[i].y = (((float)rand() / RAND_MAX) * 2.0 - 1.0) * 3;
-        particles[i].z = (((float)rand() / RAND_MAX) * 2.0 - 1.0) * 3 - 3;
+        particles[i].x = (((double)rand() / RAND_MAX) * 2.0 - 1.0) * 3;
+        particles[i].y = (((double)rand() / RAND_MAX) * 2.0 - 1.0) * 3;
+        particles[i].z = (((double)rand() / RAND_MAX) * 2.0 - 1.0) * 3 - 3;
         particles[i].vx = 0;
         particles[i].vy = 0;
         particles[i].vz = 0;
@@ -84,7 +87,6 @@ void print_particles()
     }
 }
 
-char moveForward = 0, moveBackward = 0, moveLeft = 0, moveRight = 0;
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
@@ -102,6 +104,24 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             break;
         case GLFW_KEY_D:
             moveRight = 1;
+            break;
+        case GLFW_KEY_UP:
+            turnUp = 1;
+            break;
+        case GLFW_KEY_DOWN:
+            turnDown = 1;
+            break;
+        case GLFW_KEY_LEFT:
+            turnLeft = 1;
+            break;
+        case GLFW_KEY_RIGHT:
+            turnRight = 1;
+            break;
+        case GLFW_KEY_LEFT_SHIFT:
+            moveDown = 1;
+            break;
+        case GLFW_KEY_SPACE:
+            moveUp = 1;
             break;
         }
     }
@@ -121,27 +141,95 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         case GLFW_KEY_D:
             moveRight = 0;
             break;
+        case GLFW_KEY_UP:
+            turnUp = 0;
+            break;
+        case GLFW_KEY_DOWN:
+            turnDown = 0;
+            break;
+        case GLFW_KEY_LEFT:
+            turnLeft = 0;
+            break;
+        case GLFW_KEY_RIGHT:
+            turnRight = 0;
+            break;
+        case GLFW_KEY_LEFT_SHIFT:
+            moveDown = 0;
+            break;
+        case GLFW_KEY_SPACE:
+            moveUp = 0;
+            break;
         }
     }
 }
 
 void process_input()
 {
+    double speedX = 0, speedY = 0, speedZ = 0;
+
     if (moveForward)
     {
-        posZ += 0.01;
+        speedX += sin(radians(angleY));
+        speedZ += cos(radians(angleY));
+        speedY -= sin(radians(angleX));
     }
     if (moveBackward)
     {
-        posZ -= 0.01;
+        speedX -= sin(radians(angleY));
+        speedZ -= cos(radians(angleY));
+        speedY += sin(radians(angleX));
     }
     if (moveLeft)
     {
-        posX += 0.01;
+        speedX += sin(radians(angleY + 90));
+        speedZ += cos(radians(angleY + 90));
     }
     if (moveRight)
     {
-        posX -= 0.01;
+        speedX += sin(radians(angleY - 90));
+        speedZ += cos(radians(angleY - 90));
+    }
+
+    if (moveUp)
+    {
+        speedY -= 1;
+    }
+    if (moveDown)
+    {
+        speedY += 1;
+    }
+
+    float length = sqrt(speedX * speedX + speedY * speedY + speedZ * speedZ);
+
+    fprintf(stderr, "%.2f\n", speedY);
+    if (length > 1)
+    {
+        posX += speedX * 0.01 / length;
+        posZ += speedZ * 0.01 / length;
+        posY += speedY * 0.01 / length;
+    }
+    else
+    {
+        posX += speedX * 0.01;
+        posZ += speedZ * 0.01;
+        posY += speedY * 0.01;
+    }
+
+    if (turnUp)
+    {
+        angleX += 0.1;
+    }
+    if (turnDown)
+    {
+        angleX -= 0.1;
+    }
+    if (turnLeft)
+    {
+        angleY += 0.1;
+    }
+    if (turnRight)
+    {
+        angleY -= 0.1;
     }
 }
 
@@ -199,7 +287,9 @@ int main(void)
 
         glPushMatrix();
         // Move the camera back so we can see the objects
-        glTranslatef(posX, posY, posZ);
+        glRotated(-angleX, 1, 0, 0);
+        glRotated(-angleY, 0, 1, 0);
+        glTranslated(posX, posY, posZ);
         compute_forces();
         update_positions();
         print_particles();

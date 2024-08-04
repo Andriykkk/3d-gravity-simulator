@@ -18,7 +18,7 @@ FetchContent_MakeAvailable(glfw)
 find_package(OpenGL REQUIRED)
 
 # Add the executable
-add_executable(Particle-life WIN32 src/main.c src/libraries/drawing.c)
+add_executable(Particle-life src/main.c src/libraries/drawing.c)
 
 # Link libraries
 target_link_libraries(Particle-life PRIVATE glfw ${OPENGL_LIBRARIES})
